@@ -4,6 +4,7 @@ import re
 import json
 import yaml
 import argparse
+import configparser
 from collections import defaultdict
 
 def _represent_str(dumper, instance):
@@ -50,6 +51,31 @@ def get_settings(file):
 
     return dict(settings)
 
+def init2dict(settings):
+    if isinstance(settings, dict):
+        converted = {}
+        for name, sub_settings in settings.items():
+            converted[name] = init2dict(sub_settings)
+        return converted
+    if isinstance(settings, list):
+        converted = []
+        for sub_settings in settings:
+            converted.append(init2dict(sub_settings))
+        return converted
+    if isinstance(settings, str):
+        config = configparser.ConfigParser()
+        config.read_string(settings)
+
+        converted = {}
+        for section_name, section_proxy in config.items():
+            if section_name == 'DEFAULT' and dict(section_proxy) == {}:
+                continue
+            converted[section_name] = dict(section_proxy)
+
+        return converted
+
+    raise Exception(settings, type(settings))
+
 def cura_settings_in_gcode(filename):
     with open(filename) as file:
         generator = get_generator(file)
@@ -58,7 +84,8 @@ def cura_settings_in_gcode(filename):
         print()
 
         settings = get_settings(file)
-        print(yaml.dump(settings), end='')
+        settings = init2dict(settings)
+        print(yaml.dump(settings, default_flow_style=False), end='')
 
 def main():
     parser = argparse.ArgumentParser(description='extract cura settings from gcode file')
