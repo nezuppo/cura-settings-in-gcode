@@ -3,7 +3,6 @@
 import re
 import json
 import yaml
-import argparse
 import configparser
 from collections import defaultdict
 
@@ -79,20 +78,37 @@ def init2dict(settings):
 def cura_settings_in_gcode(filename):
     with open(filename) as file:
         generator = get_generator(file)
-        print('X-Generator: {}'.format(generator if generator else 'unknown'))
-        print('Content-Type: application/x-yaml')
-        print()
-
         settings = get_settings(file)
-        settings = init2dict(settings)
-        print(yaml.dump(settings, default_flow_style=False), end='')
+
+    settings = init2dict(settings)
+
+#
+    """ <
+    str_settings = ''
+    str_settings += 'X-Generator: {}\n'.format(generator if generator else 'unknown')
+    str_settings += 'Content-Type: application/x-yaml\n'
+    str_settings += '\n'
+    str_settings += yaml.dump(settings, default_flow_style=False)
+    """
+
+    str_settings = ''.join([
+        'X-Generator: {}\n'.format(generator if generator else 'unknown'),
+        'Content-Type: application/x-yaml\n',
+        '\n'
+    ])
+    str_settings += yaml.dump(settings, default_flow_style=False)
+
+    return str_settings
 
 def main():
+    import argparse
+
     parser = argparse.ArgumentParser(description='extract cura settings from gcode file')
     parser.add_argument('cura_gcode_file')
     args = parser.parse_args()
 
-    cura_settings_in_gcode(args.cura_gcode_file)
+    str_settings = cura_settings_in_gcode(args.cura_gcode_file)
+    print(str_settings, end='')
 
 if __name__ == '__main__':
     main()
